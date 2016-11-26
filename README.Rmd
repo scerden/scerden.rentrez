@@ -1,0 +1,51 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+```
+
+# scerden.rentrez
+
+Very small wrapper around `rentrez` R pkg from ropensci.
+
+## install
+```{r, eval = F}
+devtools::install_github("scerden/scerden.rentrez")
+```
+
+
+
+## demo
+```{r}
+library(scerden.rentrez)
+library(tidyverse)
+search_pubmed(term = "topoisomerase")
+series_ids <- c("GSE41494", "GSE68016", "GSE8305") # geo series ids for which you want to track down citing papers
+map_df(series_ids, search_pubmed)
+```
+
+
+
+## pkg creation:
+
+* Prelims  
+```{r, eval = F}
+use_readme_rmd()
+use_data_raw()
+```
+
+* when writing `./R` fxns  
+```{r, eval = F}
+use_package("tibble")
+use_package("rentrez")
+use_package("dplyr")
+use_package("purrr")
+```
