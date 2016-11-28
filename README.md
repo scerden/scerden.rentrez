@@ -93,6 +93,7 @@ pkg creation:
 ``` r
 use_readme_rmd()
 use_data_raw()
+use_testthat()
 ```
 
 -   when writing `./R` fxns
