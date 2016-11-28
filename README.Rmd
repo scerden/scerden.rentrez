@@ -6,9 +6,9 @@ output: github_document
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  fig.path = "README-"
+    collapse = TRUE,
+    comment = "#>",
+    fig.path = "README-"
 )
 ```
 
@@ -22,14 +22,25 @@ devtools::install_github("scerden/scerden.rentrez")
 ```
 
 
+Pkg makes avaiable 2 functions:  
+1. `pubmed_search()` searches pubmed and returns a (character vector of) the matching db id(s).  
+2. `pubmed_summary()` returns a tibble of useful variables, one row per input id.
 
 ## demo
 ```{r}
 library(scerden.rentrez)
 library(tidyverse)
-search_pubmed(term = "topoisomerase")
+
+"topoisomerase" %>% pubmed_search(retmax = 10)
+"topoisomerase" %>% pubmed_search(retmax = 10, verbose = T) # troubleshooting
+"topoisomerase" %>% pubmed_search(retmax = 10) %>% pubmed_summary()
+
 series_ids <- c("GSE41494", "GSE68016", "GSE8305") # geo series ids for which you want to track down citing papers
-map_df(series_ids, search_pubmed)
+res <- tibble(gse = series_ids, 
+              pmid = map(gse, pubmed_search),
+              psummary = map(pmid, pubmed_summary))
+res
+res %>% unnest()
 ```
 
 

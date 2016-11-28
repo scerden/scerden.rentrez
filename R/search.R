@@ -21,7 +21,7 @@ to_tibble.esummary <- function(x) {
 #' @rdname to_tibble
 #' @export
 to_tibble.esummary_list <- function(x) {
-    out <- purrr::map(x, as_tibble.esummary)
+    out <- purrr::map(x, to_tibble.esummary)
     out <- dplyr::bind_rows(out)
     if(length(out) == 0L) {
         out <- to_tibble.default()
@@ -32,14 +32,21 @@ to_tibble.esummary_list <- function(x) {
 #' @rdname to_tibble
 #' @export
 to_tibble.default <- function(x) {
+    # should only end up down here if
+    # empty character or NA so:
+    if(length(x) == 0){
+        y <- vector("character", 0L)
+    }else if(is.na(x)) {
+        y <- NA_character_
+    }
     tibble::tibble(
-        uid = "NA",
-        sortpubdate = "NA",
-        elocationid = "NA",
-        sortfirstauthor = "NA",
-        lastauthor = "NA",
-        source = "NA",
-        sorttile = "NA"
+        uid = y,
+        sortpubdate = y,
+        elocationid = y,
+        sortfirstauthor = y,
+        lastauthor = y,
+        source = y,
+        sorttile = y
     )
 }
 
@@ -52,21 +59,50 @@ to_tibble.default <- function(x) {
 #'
 #' @param term search term for pubmed
 #' @param retmax integer Maximum number of hits returned by the search (passed down)
+#' @param verbose logical, if T will display request and response via rentrez::entrez_search
+#' @return
+#'     a character vector of one or more ids matching search or NA
 #' @examples
-#'   # search_pubmed("GSE8305")
+#'   # pubmed_search("GSE8305")
 #' @export
-search_pubmed <- function(term, retmax = 20) {
-    # fetch ids of matches
-    ids <- rentrez::entrez_search("pubmed", term = term, retmax = retmax)[["ids"]]
-    # fetch esummaries
-    res <- purrr::map(ids, ~rentrez::entrez_summary("pubmed", id = .x))
-    # parse results
-    res <- purrr::map(res, to_tibble)
-    if(length(res) == 0) {
-        res <- list(to_tibble.default(res))
+pubmed_search <- function(term, retmax = "1000000", verbose = F) {
+    # validate input
+    if(is.null(term)) stop("term cannot be null.") # handle NULL
+    if(is.na(term)) return(NA_character_) # handle NA
+
+    esearch <- rentrez::entrez_search("pubmed", term = term, retmax = retmax)
+
+    # verbose shows call and result str
+    if(verbose) {
+        cat("#", deparse(substitute(rentrez::entrez_search("pubmed", term = term, retmax = retmax))), '\n')
+        cat(paste0("# ", capture.output(str(esearch)), collapse ='\n'))
     }
-    res <- dplyr::bind_rows(res)
-    res <- dplyr::mutate(res, term = term)
-    dplyr::select(res, term, dplyr::everything())
+
+    # for consistent output type, if no ids found return empty 0L chr
+    if(length(esearch$ids) == 0) {
+        return(vector("character", 0L))
+    }
+    esearch$ids
 }
 
+#' get summary tibble matching one or more pubmed ids
+#'
+#'
+#' @param ids character vector of pubmed db ids, such as returned from pubmed_search()
+#' @return a tibble with uid, sortpubdate, elocationid, sortfirstauthor, lastauthot,
+#'  source, and sorttitle vars of length(ids) observations.
+#'
+#' @export
+pubmed_summary <- function(ids) {
+    # validate input
+    if(is.null(ids)) stop("ids cannot be null.") # handle NULL
+    # NA handling built in
+    res <- purrr::map_if(ids, ~!is.na(.x), ~rentrez::entrez_summary("pubmed", id = .x))
+    # handle 0-length res (if ids is 0-length)
+    if(length(res) == 0) {
+        return(to_tibble(res))
+    }
+    # for when length ids >= 1
+    res <- purrr::map(res, to_tibble)
+    dplyr::bind_rows(res)
+}
